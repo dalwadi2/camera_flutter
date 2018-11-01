@@ -1,7 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:simple_permissions/simple_permissions.dart';
-import 'dart:io';
 
 List<CameraDescription> cameras;
 
@@ -61,6 +60,40 @@ class _state extends State<MyApp> {
     super.dispose();
   }
 
+  Future<String> saveImage() async {
+    String timestamp = new DateTime.now().millisecondsSinceEpoch.toString();
+    String filePath = '/storage/emulated/0/Pictures/${timestamp}.jpg';
+
+    if (cameraController.value.isTakingPicture) return null;
+    try {
+      await cameraController.takePicture(filePath);
+    } on CameraException catch (e) {
+      showInSnackbar(e.toString());
+    }
+    return filePath;
+  }
+
+  void takePicture() async {
+    bool hasCamera = await SimplePermissions.checkPermission(_permissionCamera);
+    bool hasStorage =
+    await SimplePermissions.checkPermission(_permissionStorage);
+
+    if (!hasCamera || !hasStorage) {
+      showInSnackbar("Go to settings and allow permissions");
+      return;
+    }
+
+    saveImage().then((String filePath) {
+      if (mounted && filePath != null)
+        showInSnackbar("Picture Saved $filePath");
+    });
+  }
+
+  void showInSnackbar(String message) {
+    _scaffoldKey.currentState
+        .showSnackBar(new SnackBar(content: new Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
@@ -80,7 +113,7 @@ class _state extends State<MyApp> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
                   new IconButton(
-                    onPressed: null,
+                    onPressed: takePicture,
                     icon: new Icon(Icons.camera),
                   ),
                   new RaisedButton(
